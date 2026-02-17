@@ -1,0 +1,71 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16
+    container_name: medcol-db
+    restart: always
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - jhamfstack
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: medcol-backend
+    restart: always
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+      - PORT=4000
+      - JWT_SECRET=${JWT_SECRET}
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
+      - AZURE_STORAGE_CONTAINER_NAME=${AZURE_STORAGE_CONTAINER_NAME}
+      - AZURE_STORAGE_ACCOUNT_NAME=${AZURE_STORAGE_ACCOUNT_NAME}
+      - AZURE_STORAGE_ACCOUNT_KEY=${AZURE_STORAGE_ACCOUNT_KEY}
+    depends_on:
+      - db
+    networks:
+      - jhamfstack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.medcol-backend.rule=Host(`docs.jhamf.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.medcol-backend.entrypoints=websecure"
+      - "traefik.http.routers.medcol-backend.tls.certresolver=myresolver"
+      - "traefik.http.services.medcol-backend.loadbalancer.server.port=4000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=https://docs.jhamf.com/api
+    container_name: medcol-frontend
+    restart: always
+    depends_on:
+      - backend
+    networks:
+      - jhamfstack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.medcol-frontend.rule=Host(`docs.jhamf.com`)"
+      - "traefik.http.routers.medcol-frontend.entrypoints=websecure"
+      - "traefik.http.routers.medcol-frontend.tls.certresolver=myresolver"
+      - "traefik.http.services.medcol-frontend.loadbalancer.server.port=3000"
+
+volumes:
+  pgdata:
+
+
+networks:
+  jhamfstack:
+    external: true
