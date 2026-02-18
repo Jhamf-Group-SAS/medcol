@@ -13,7 +13,7 @@ import { UploadService } from './upload.service';
 import { DocumentosService } from './documentos.service';
 import { Get, Query } from '@nestjs/common';
 import { UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UnauthorizedException } from '@nestjs/common';
 
 @Controller('documentos')
@@ -31,8 +31,17 @@ export class DocumentosController {
     @UploadedFiles() files: Express.Multer.File[],
     @Req() req,
   ) {
-    console.log('🔹 POST recibido para guardar documentos');
-    console.log('🔹 Archivos recibidos:', files);
+    console.log('🔹 POST recibido para guardar documentos. idPaciente:', idPaciente);
+    console.log('🔹 Archivos recibidos:', files?.length || 0);
+    console.log('👤 Usuario autenticado (req.user):', req.user);
+
+    const idUsuario = Number(req.user?.id);
+
+    if (!idUsuario) {
+      console.error('❌ Error: idUsuario no encontrado en req.user. req.user es:', req.user);
+      throw new UnauthorizedException('Usuario no autenticado (ID faltante)');
+    }
+
     const urls = await this.uploadService.uploadFiles(
       files,
       `paciente-${idPaciente}`,
@@ -45,14 +54,6 @@ export class DocumentosController {
         url: urls[index],
       };
     });
-
-    console.log('👤 Usuario autenticado (req.user):', req.user);
-    const idUsuario = Number(req.user?.id);
-
-    if (!idUsuario) {
-      console.error('❌ Error: idUsuario no encontrado en req.user');
-      throw new UnauthorizedException('Usuario no autenticado (ID faltante)');
-    }
 
     const esPendiente = req.body.es_pendiente === 'true';
     console.log('📌 esPendiente:', esPendiente);

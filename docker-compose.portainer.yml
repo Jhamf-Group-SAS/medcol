@@ -3,8 +3,9 @@ version: "3.8"
 services:
   db:
     image: postgres:16
-    container_name: medcol-db
-    restart: always
+    deploy:
+      restart_policy:
+        condition: on-failure
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -12,14 +13,16 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
-      - jhamfstack
+      - vnetdocs
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: medcol-backend
-    restart: always
+    image: medcol-backend:latest
+    deploy:
+      restart_policy:
+        condition: on-failure
     environment:
       - DB_HOST=db
       - DB_PORT=5432
@@ -35,7 +38,7 @@ services:
     depends_on:
       - db
     networks:
-      - jhamfstack
+      - vnetdocs
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.medcol-backend.rule=Host(`docs.jhamf.com`) && PathPrefix(`/api`)"
@@ -49,12 +52,14 @@ services:
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=https://docs.jhamf.com/api
-    container_name: medcol-frontend
-    restart: always
+    image: medcol-frontend:latest
+    deploy:
+      restart_policy:
+        condition: on-failure
     depends_on:
       - backend
     networks:
-      - jhamfstack
+      - vnetdocs
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.medcol-frontend.rule=Host(`docs.jhamf.com`)"
@@ -67,5 +72,5 @@ volumes:
 
 
 networks:
-  jhamfstack:
+  vnetdocs:
     external: true
