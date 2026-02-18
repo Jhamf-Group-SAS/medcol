@@ -16,10 +16,7 @@ services:
       - vnetdocs
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    image: medcol-backend:latest
+    image: jhamfgit/medcol-backend:latest
     deploy:
       restart_policy:
         condition: on-failure
@@ -47,12 +44,7 @@ services:
       - "traefik.http.services.medcol-backend.loadbalancer.server.port=4000"
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_API_URL=https://medcoldocs.jhamf.com/api
-    image: medcol-frontend:latest
+    image: jhamfgit/medcol-frontend:latest
     deploy:
       restart_policy:
         condition: on-failure
